@@ -21,14 +21,14 @@ mod rpassword;
 mod securemem;
 
 #[cfg_attr(target_os = "linux", path = "sys_linuxpam.rs")]
-#[cfg_attr(target_os = "freebsd", path = "sys_openpam.rs")]
+#[cfg_attr(any(target_os = "freebsd", target_os = "oxidebsd"), path = "sys_openpam.rs")]
 #[allow(nonstandard_style)]
 pub mod sys;
 
 #[link(name = "pam")]
 unsafe extern "C" {}
 
-#[cfg(target_os = "freebsd")]
+#[cfg(any(target_os = "freebsd", target_os = "oxidebsd"))]
 const PAM_DATA_SILENT: std::ffi::c_int = 0;
 
 pub use converse::CLIConverser;
@@ -62,6 +62,9 @@ impl PamContext {
         password_timeout: Option<Duration>,
         target_user: Option<&str>,
     ) -> PamResult<PamContext> {
+        // OxideBSD: keep the statically linked PAM modules' table (`oxidebsd_pam::link`).
+        #[cfg(target_os = "oxidebsd")]
+        oxidebsd_pam::link();
         let converser = CLIConverser {
             bell: bell.into(),
             name: converser_name.to_owned(),

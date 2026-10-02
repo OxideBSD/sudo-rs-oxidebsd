@@ -1,5 +1,5 @@
 // TODO: remove unused attribute when system is cleaned up
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "oxidebsd"))]
 use std::str::FromStr;
 use std::{
     ffi::{CStr, c_int, c_long, c_uint},
@@ -37,8 +37,8 @@ pub mod term;
 
 pub mod wait;
 
-#[cfg(not(any(target_os = "freebsd", target_os = "linux")))]
-compile_error!("sudo-rs only works on Linux and FreeBSD");
+#[cfg(not(any(target_os = "freebsd", target_os = "linux", target_os = "oxidebsd")))]
+compile_error!("sudo-rs only works on Linux, FreeBSD and OxideBSD");
 
 pub(crate) fn _exit(status: c_int) -> ! {
     // SAFETY: this function is safe to call
@@ -54,15 +54,16 @@ pub(crate) fn mark_fds_as_cloexec() -> io::Result<()> {
     #[allow(clippy::diverging_sub_expression)]
     let res = unsafe {
         'a: {
-            #[cfg(not(target_os = "linux"))]
+            #[cfg(not(any(target_os = "linux", target_os = "oxidebsd")))]
             break 'a cerr(libc::close_range(
                 lowfd as c_uint,
                 c_uint::MAX,
                 CLOSE_RANGE_CLOEXEC as c_int,
             ));
             // on Linux, close_range was only added in glibc 2.34, and is not
-            // part of musl, so we go perform a straight syscall instead
-            #[cfg(target_os = "linux")]
+            // part of musl, so we go perform a straight syscall instead (OxideBSD: musl too, and
+            // its kernel serves close_range at Linux's number)
+            #[cfg(any(target_os = "linux", target_os = "oxidebsd"))]
             break 'a cerr(libc::syscall(
                 libc::SYS_close_range,
                 lowfd as c_uint,
@@ -668,7 +669,7 @@ pub enum WithProcess {
 }
 
 impl WithProcess {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "oxidebsd"))]
     fn to_proc_string(&self) -> String {
         match self {
             WithProcess::Current => "self".into(),
@@ -715,7 +716,7 @@ impl Process {
 
     /// Returns the device identifier of the TTY device that is currently
     /// attached to the given process
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "oxidebsd"))]
     pub fn tty_device_id(pid: WithProcess) -> std::io::Result<Option<DeviceId>> {
         // device id of tty is displayed as a signed integer of 32 bits
         let data: i32 = read_proc_stat(pid, 6 /* tty_nr */)?;
@@ -799,7 +800,7 @@ impl Process {
     }
 
     /// Get the process starting time of a specific process
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "oxidebsd"))]
     pub fn starting_time(pid: WithProcess) -> io::Result<ProcessCreateTime> {
         let process_start: u64 = read_proc_stat(pid, 21 /* start_time */)?;
 
@@ -838,7 +839,7 @@ impl Process {
 /// IMPORTANT: the first two fields are not accessible with this routine.
 ///
 /// [proc_stat_fields]: https://www.kernel.org/doc/html/latest/filesystems/proc.html#id10
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "oxidebsd"))]
 fn read_proc_stat<T: FromStr>(pid: WithProcess, field_idx: isize) -> io::Result<T> {
     // the first two fields are skipped by the code below, and we never need them,
     // so no point in implementing code for it in this private function.

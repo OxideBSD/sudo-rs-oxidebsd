@@ -18,6 +18,11 @@ default-run = "sudo"
 libc = "0.2.176"
 glob = "0.3.0"
 
+# OxideBSD: its PAM modules are Rust, linked in (no dlopen of modules), in the OxideBSD tree's
+# lib/libpam, which also defines OpenPAM's openpam_static_modules table.
+[target.'cfg(target_os = "oxidebsd")'.dependencies]
+oxidebsd-pam = { package = "pam", path = "../../../lib/libpam" }
+
 [features]
 default = []
 
@@ -47,6 +52,13 @@ do-not-use-all-features = []
 strip = "symbols"
 lto = true
 opt-level = "s"
+
+# OxideBSD: the libc crate fork that knows target_os = "oxidebsd", and a workspace of its own
+# (sudo-rs lives inside the OxideBSD tree at external/mit/sudo-rs, but isn't one of its members).
+[patch.crates-io]
+libc = { git = "https://github.com/OxideBSD/libc-crate-oxidebsd.git", branch = "oxidebsd" }
+
+[workspace]
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = { level = "deny" }

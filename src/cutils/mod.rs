@@ -22,7 +22,7 @@ unsafe extern "C" {
         any(target_os = "openbsd", target_os = "netbsd", target_os = "android"),
         link_name = "__errno"
     )]
-    #[cfg_attr(target_os = "linux", link_name = "__errno_location")]
+    #[cfg_attr(any(target_os = "linux", target_os = "oxidebsd"), link_name = "__errno_location")]
     safe fn errno_location() -> *mut c_int;
 }
 

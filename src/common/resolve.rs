@@ -144,7 +144,7 @@ pub(crate) fn resolve_target_user_and_group(
         // when no -u or -g is specified, default to root:root
         (None, None) => {
             target_user = User::from_name(c"root")?;
-            target_group = Group::from_name(if cfg!(target_os = "linux") {
+            target_group = Group::from_name(if cfg!(any(target_os = "linux", target_os = "oxidebsd")) {
                 c"root"
             } else {
                 c"wheel"
